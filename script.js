@@ -121,6 +121,78 @@ function getPawnMoves(row, col) {
     return moves;
 }
 
+// Calcula os movimentos de uma torre
+function getRookMoves(row, col) {
+    const piece = position[row][col];
+
+    if (!piece || pieceNames[piece] !== "Torre") {
+        return [];
+    }
+
+    const color = getPieceColor(piece);
+    const moves = [];
+
+    // Quatro direções possíveis
+    const directions = [
+        { row: -1, col: 0 }, // Cima
+        { row: 1, col: 0 },  // Baixo
+        { row: 0, col: -1 }, // Esquerda
+        { row: 0, col: 1 }   // Direita
+    ];
+
+    for (const direction of directions) {
+        for (let distance = 1; distance < 8; distance++) {
+            const targetRow = row + direction.row * distance;
+            const targetCol = col + direction.col * distance;
+
+            // Saiu dos limites do tabuleiro?
+            if (
+                targetRow < 0 || targetRow > 7 ||
+                targetCol < 0 || targetCol > 7
+            ) {
+                break;
+            }
+
+            const targetPiece = position[targetRow][targetCol];
+
+            // Casa vazia: pode continuar andando
+            if (targetPiece === "") {
+                moves.push({ row: targetRow, col: targetCol });
+                continue;
+            }
+
+            // Peça adversária: pode capturar, mas não atravessar
+            if (getPieceColor(targetPiece) !== color) {
+                moves.push({ row: targetRow, col: targetCol });
+            }
+
+            // Encontrou qualquer peça: encerra essa direção
+            break;
+        }
+    }
+
+    return moves;
+}
+
+// Retorna os movimentos de acordo com o tipo da peça
+function getValidMoves(row, col) {
+    const piece = position[row][col];
+
+    if (!piece) return [];
+
+    const pieceName = pieceNames[piece];
+
+    if (pieceName === "Peão") {
+        return getPawnMoves(row, col);
+    }
+
+    if (pieceName === "Torre") {
+        return getRookMoves(row, col);
+    }
+
+    return [];
+}
+
 // Movimenta uma peça
 function movePiece(fromRow, fromCol, toRow, toCol) {
 
@@ -151,10 +223,10 @@ function selectSquare(row, col) {
     // verificamos se o destino é permitido.
     if (selectedSquare) {
 
-        const moves = getPawnMoves(
-            selectedSquare.row,
-            selectedSquare.col
-        );
+        const moves = getValidMoves(
+    selectedSquare.row,
+    selectedSquare.col
+);
 
         const validMove = moves.find(
             move => move.row === row && move.col === col
@@ -202,10 +274,10 @@ function renderBoard() {
     let possibleMoves = [];
 
     if (selectedSquare) {
-        possibleMoves = getPawnMoves(
-            selectedSquare.row,
-            selectedSquare.col
-        );
+    possibleMoves = getValidMoves(
+    selectedSquare.row,
+    selectedSquare.col
+);
     }
 
     for (let row = 0; row < 8; row++) {
