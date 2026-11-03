@@ -228,7 +228,21 @@ function getBishopMoves(row, col) {
     return moves;
 }
 
-// Retorna os movimentos de acordo com o tipo da peça
+// Calcula os movimentos da rainha
+function getQueenMoves(row, col) {
+    const piece = position[row][col];
+
+    if (!piece || pieceNames[piece] !== "Rainha") {
+        return [];
+    }
+
+    // A rainha combina os movimentos da torre e do bispo
+    const rookMoves = getRookMoves(row, col);
+    const bishopMoves = getBishopMoves(row, col);
+
+    return [...rookMoves, ...bishopMoves];
+}
+// retorna e verifica as peças
 function getValidMoves(row, col) {
     const piece = position[row][col];
 
@@ -246,6 +260,10 @@ function getValidMoves(row, col) {
 
     if (pieceName === "Bispo") {
         return getBishopMoves(row, col);
+    }
+
+    if (pieceName === "Rainha") {
+        return getQueenMoves(row, col);
     }
 
     return [];
