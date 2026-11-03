@@ -1,9 +1,9 @@
 
-
 const board = document.getElementById("board");
 const turnDisplay = document.getElementById("turn");
 const restartButton = document.getElementById("restart");
 
+// POSIÇÃO INICIAL
 const initialPosition = [
     ["♜", "♞", "♝", "♛", "♚", "♝", "♞", "♜"],
     ["♟", "♟", "♟", "♟", "♟", "♟", "♟", "♟"],
@@ -28,7 +28,7 @@ let position = initialPosition.map(row => [...row]);
 let selectedSquare = null;
 let currentTurn = "white";
 
-// Identifica a cor da peça
+// IDENTIFICA A COR DA PEÇA
 function getPieceColor(piece) {
     if (!piece) return null;
 
@@ -37,7 +37,7 @@ function getPieceColor(piece) {
         : "black";
 }
 
-// Retorna informações da peça
+// RETORNA INFORMAÇÕES DA PEÇA
 function getPieceInfo(piece) {
     if (!piece) return null;
 
@@ -47,14 +47,13 @@ function getPieceInfo(piece) {
     };
 }
 
-// Verifica se uma casa está vazia
+// VERIFICA SE UMA CASA ESTÁ VAZIA
 function isSquareEmpty(row, col) {
     return position[row][col] === "";
 }
 
-// Calcula os movimentos de um peão
+// PEÃO
 function getPawnMoves(row, col) {
-
     const piece = position[row][col];
 
     if (!piece || pieceNames[piece] !== "Peão") {
@@ -63,12 +62,11 @@ function getPawnMoves(row, col) {
 
     const color = getPieceColor(piece);
     const direction = color === "white" ? -1 : 1;
-
     const moves = [];
 
     const nextRow = row + direction;
 
-    // Movimento de uma casa
+    // Movimento para frente
     if (
         nextRow >= 0 &&
         nextRow <= 7 &&
@@ -84,20 +82,15 @@ function getPawnMoves(row, col) {
             row === initialRow &&
             isSquareEmpty(doubleRow, col)
         ) {
-            moves.push({
-                row: doubleRow,
-                col
-            });
+            moves.push({ row: doubleRow, col });
         }
     }
 
     // Capturas diagonais
     for (const offset of [-1, 1]) {
-
         const targetRow = row + direction;
         const targetCol = col + offset;
 
-        // Verifica os limites do tabuleiro
         if (
             targetRow < 0 || targetRow > 7 ||
             targetCol < 0 || targetCol > 7
@@ -109,7 +102,8 @@ function getPawnMoves(row, col) {
 
         if (
             targetPiece !== "" &&
-            getPieceColor(targetPiece) !== color
+            getPieceColor(targetPiece) !== color &&
+            pieceNames[targetPiece] !== "Rei"
         ) {
             moves.push({
                 row: targetRow,
@@ -121,81 +115,17 @@ function getPawnMoves(row, col) {
     return moves;
 }
 
-// Calcula os movimentos de uma torre
-function getRookMoves(row, col) {
+// MOVIMENTOS EM LINHA RETA OU DIAGONAL
+function getSlidingMoves(row, col, directions) {
     const piece = position[row][col];
 
-    if (!piece || pieceNames[piece] !== "Torre") {
-        return [];
-    }
+    if (!piece) return [];
 
     const color = getPieceColor(piece);
     const moves = [];
 
-    // Quatro direções possíveis
-    const directions = [
-        { row: -1, col: 0 }, // Cima
-        { row: 1, col: 0 },  // Baixo
-        { row: 0, col: -1 }, // Esquerda
-        { row: 0, col: 1 }   // Direita
-    ];
-
     for (const direction of directions) {
         for (let distance = 1; distance < 8; distance++) {
-            const targetRow = row + direction.row * distance;
-            const targetCol = col + direction.col * distance;
-
-            // Saiu dos limites do tabuleiro?
-            if (
-                targetRow < 0 || targetRow > 7 ||
-                targetCol < 0 || targetCol > 7
-            ) {
-                break;
-            }
-
-            const targetPiece = position[targetRow][targetCol];
-
-            // Casa vazia: pode continuar andando
-            if (targetPiece === "") {
-                moves.push({ row: targetRow, col: targetCol });
-                continue;
-            }
-
-            // Peça adversária: pode capturar, mas não atravessar
-            if (getPieceColor(targetPiece) !== color) {
-                moves.push({ row: targetRow, col: targetCol });
-            }
-
-            // Encontrou qualquer peça: encerra essa direção
-            break;
-        }
-    }
-
-    return moves;
-}
-// Calcula os movimentos de um bispo
-function getBishopMoves(row, col) {
-    const piece = position[row][col];
-
-    if (!piece || pieceNames[piece] !== "Bispo") {
-        return [];
-    }
-
-    const color = getPieceColor(piece);
-    const moves = [];
-
-    // Quatro diagonais possíveis
-    const directions = [
-        { row: -1, col: -1 }, // Cima e esquerda
-        { row: -1, col: 1 },  // Cima e direita
-        { row: 1, col: -1 },  // Baixo e esquerda
-        { row: 1, col: 1 }    // Baixo e direita
-    ];
-
-    for (const direction of directions) {
-
-        for (let distance = 1; distance < 8; distance++) {
-
             const targetRow = row + direction.row * distance;
             const targetCol = col + direction.col * distance;
 
@@ -209,18 +139,28 @@ function getBishopMoves(row, col) {
 
             const targetPiece = position[targetRow][targetCol];
 
-            // Casa vazia: movimento permitido
+            // Casa vazia
             if (targetPiece === "") {
-                moves.push({ row: targetRow, col: targetCol });
+                moves.push({
+                    row: targetRow,
+                    col: targetCol
+                });
+
                 continue;
             }
 
-            // Peça adversária: permite captura
-            if (getPieceColor(targetPiece) !== color) {
-                moves.push({ row: targetRow, col: targetCol });
+            // Captura uma peça adversária
+            if (
+                getPieceColor(targetPiece) !== color &&
+                pieceNames[targetPiece] !== "Rei"
+            ) {
+                moves.push({
+                    row: targetRow,
+                    col: targetCol
+                });
             }
 
-            // Não pode atravessar nenhuma peça
+            // Nenhuma peça pode ser atravessada
             break;
         }
     }
@@ -228,7 +168,43 @@ function getBishopMoves(row, col) {
     return moves;
 }
 
-// Calcula os movimentos da rainha
+// TORRE
+function getRookMoves(row, col) {
+    const piece = position[row][col];
+
+    if (!piece || pieceNames[piece] !== "Torre") {
+        return [];
+    }
+
+    const directions = [
+        { row: -1, col: 0 },
+        { row: 1, col: 0 },
+        { row: 0, col: -1 },
+        { row: 0, col: 1 }
+    ];
+
+    return getSlidingMoves(row, col, directions);
+}
+
+// BISPO
+function getBishopMoves(row, col) {
+    const piece = position[row][col];
+
+    if (!piece || pieceNames[piece] !== "Bispo") {
+        return [];
+    }
+
+    const directions = [
+        { row: -1, col: -1 },
+        { row: -1, col: 1 },
+        { row: 1, col: -1 },
+        { row: 1, col: 1 }
+    ];
+
+    return getSlidingMoves(row, col, directions);
+}
+
+// RAINHA
 function getQueenMoves(row, col) {
     const piece = position[row][col];
 
@@ -236,13 +212,131 @@ function getQueenMoves(row, col) {
         return [];
     }
 
-    // A rainha combina os movimentos da torre e do bispo
-    const rookMoves = getRookMoves(row, col);
-    const bishopMoves = getBishopMoves(row, col);
+    const directions = [
+        // Retas
+        { row: -1, col: 0 },
+        { row: 1, col: 0 },
+        { row: 0, col: -1 },
+        { row: 0, col: 1 },
 
-    return [...rookMoves, ...bishopMoves];
+        // Diagonais
+        { row: -1, col: -1 },
+        { row: -1, col: 1 },
+        { row: 1, col: -1 },
+        { row: 1, col: 1 }
+    ];
+
+    return getSlidingMoves(row, col, directions);
 }
-// retorna e verifica as peças
+
+// CAVALO
+function getKnightMoves(row, col) {
+    const piece = position[row][col];
+
+    if (!piece || pieceNames[piece] !== "Cavalo") {
+        return [];
+    }
+
+    const color = getPieceColor(piece);
+    const moves = [];
+
+    const directions = [
+        { row: -2, col: -1 },
+        { row: -2, col: 1 },
+        { row: -1, col: -2 },
+        { row: -1, col: 2 },
+        { row: 1, col: -2 },
+        { row: 1, col: 2 },
+        { row: 2, col: -1 },
+        { row: 2, col: 1 }
+    ];
+
+    for (const direction of directions) {
+        const targetRow = row + direction.row;
+        const targetCol = col + direction.col;
+
+        // Verifica se o destino existe
+        if (
+            targetRow < 0 || targetRow > 7 ||
+            targetCol < 0 || targetCol > 7
+        ) {
+            continue;
+        }
+
+        const targetPiece = position[targetRow][targetCol];
+
+        // O cavalo pode saltar sobre outras peças
+        if (
+            targetPiece === "" ||
+            (
+                getPieceColor(targetPiece) !== color &&
+                pieceNames[targetPiece] !== "Rei"
+            )
+        ) {
+            moves.push({
+                row: targetRow,
+                col: targetCol
+            });
+        }
+    }
+
+    return moves;
+}
+
+// REI
+function getKingMoves(row, col) {
+    const piece = position[row][col];
+
+    if (!piece || pieceNames[piece] !== "Rei") {
+        return [];
+    }
+
+    const color = getPieceColor(piece);
+    const moves = [];
+
+    // O rei pode andar uma casa em qualquer direção
+    const directions = [
+        { row: -1, col: -1 },
+        { row: -1, col: 0 },
+        { row: -1, col: 1 },
+        { row: 0, col: -1 },
+        { row: 0, col: 1 },
+        { row: 1, col: -1 },
+        { row: 1, col: 0 },
+        { row: 1, col: 1 }
+    ];
+
+    for (const direction of directions) {
+        const targetRow = row + direction.row;
+        const targetCol = col + direction.col;
+
+        if (
+            targetRow < 0 || targetRow > 7 ||
+            targetCol < 0 || targetCol > 7
+        ) {
+            continue;
+        }
+
+        const targetPiece = position[targetRow][targetCol];
+
+        if (
+            targetPiece === "" ||
+            (
+                getPieceColor(targetPiece) !== color &&
+                pieceNames[targetPiece] !== "Rei"
+            )
+        ) {
+            moves.push({
+                row: targetRow,
+                col: targetCol
+            });
+        }
+    }
+
+    return moves;
+}
+
+// RECONHECE OS MOVIMENTOS DE CADA PEÇA
 function getValidMoves(row, col) {
     const piece = position[row][col];
 
@@ -266,11 +360,19 @@ function getValidMoves(row, col) {
         return getQueenMoves(row, col);
     }
 
+    if (pieceName === "Cavalo") {
+        return getKnightMoves(row, col);
+    }
+
+    if (pieceName === "Rei") {
+        return getKingMoves(row, col);
+    }
+
     return [];
 }
-// Movimenta uma peça
-function movePiece(fromRow, fromCol, toRow, toCol) {
 
+// MOVIMENTA UMA PEÇA
+function movePiece(fromRow, fromCol, toRow, toCol) {
     const piece = position[fromRow][fromCol];
 
     position[toRow][toCol] = piece;
@@ -289,19 +391,15 @@ function movePiece(fromRow, fromCol, toRow, toCol) {
     renderBoard();
 }
 
-// Seleciona e movimenta peças
+// SELECIONA E MOVIMENTA PEÇAS
 function selectSquare(row, col) {
-
     const piece = position[row][col];
 
-    // Se já existe uma peça selecionada,
-    // verificamos se o destino é permitido.
     if (selectedSquare) {
-
         const moves = getValidMoves(
-    selectedSquare.row,
-    selectedSquare.col
-);
+            selectedSquare.row,
+            selectedSquare.col
+        );
 
         const validMove = moves.find(
             move => move.row === row && move.col === col
@@ -314,13 +412,13 @@ function selectSquare(row, col) {
                 row,
                 col
             );
+
             return;
         }
     }
 
-    // Seleciona apenas peças do jogador atual
+    // Seleciona uma peça da vez atual
     if (piece && getPieceColor(piece) === currentTurn) {
-
         selectedSquare = { row, col };
 
         const info = getPieceInfo(piece);
@@ -328,8 +426,7 @@ function selectSquare(row, col) {
         turnDisplay.textContent =
             `Selecionada: ${info.name}`;
 
-    } else if (!piece || getPieceColor(piece) !== currentTurn) {
-
+    } else {
         selectedSquare = null;
 
         turnDisplay.textContent =
@@ -341,23 +438,21 @@ function selectSquare(row, col) {
     renderBoard();
 }
 
-// Renderiza o tabuleiro
+// RENDERIZA O TABULEIRO
 function renderBoard() {
-
     board.innerHTML = "";
 
     let possibleMoves = [];
 
     if (selectedSquare) {
-    possibleMoves = getValidMoves(
-    selectedSquare.row,
-    selectedSquare.col
-);
+        possibleMoves = getValidMoves(
+            selectedSquare.row,
+            selectedSquare.col
+        );
     }
 
     for (let row = 0; row < 8; row++) {
         for (let col = 0; col < 8; col++) {
-
             const square = document.createElement("div");
 
             square.classList.add("square");
@@ -369,7 +464,6 @@ function renderBoard() {
             const piece = position[row][col];
 
             if (piece) {
-
                 square.textContent = piece;
 
                 square.classList.add(
@@ -379,6 +473,7 @@ function renderBoard() {
                 );
             }
 
+            // Destaca a peça selecionada
             if (
                 selectedSquare &&
                 selectedSquare.row === row &&
@@ -387,6 +482,7 @@ function renderBoard() {
                 square.classList.add("selected");
             }
 
+            // Destaca movimentos possíveis
             if (
                 possibleMoves.some(
                     move => move.row === row && move.col === col
@@ -404,9 +500,8 @@ function renderBoard() {
     }
 }
 
-// Reinicia o jogo
+// REINICIA O JOGO
 function restartGame() {
-
     position = initialPosition.map(row => [...row]);
 
     selectedSquare = null;
@@ -420,4 +515,5 @@ function restartGame() {
 restartButton.addEventListener("click", restartGame);
 
 renderBoard();
+
 
