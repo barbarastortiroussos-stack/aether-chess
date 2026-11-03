@@ -173,6 +173,60 @@ function getRookMoves(row, col) {
 
     return moves;
 }
+// Calcula os movimentos de um bispo
+function getBishopMoves(row, col) {
+    const piece = position[row][col];
+
+    if (!piece || pieceNames[piece] !== "Bispo") {
+        return [];
+    }
+
+    const color = getPieceColor(piece);
+    const moves = [];
+
+    // Quatro diagonais possíveis
+    const directions = [
+        { row: -1, col: -1 }, // Cima e esquerda
+        { row: -1, col: 1 },  // Cima e direita
+        { row: 1, col: -1 },  // Baixo e esquerda
+        { row: 1, col: 1 }    // Baixo e direita
+    ];
+
+    for (const direction of directions) {
+
+        for (let distance = 1; distance < 8; distance++) {
+
+            const targetRow = row + direction.row * distance;
+            const targetCol = col + direction.col * distance;
+
+            // Verifica os limites do tabuleiro
+            if (
+                targetRow < 0 || targetRow > 7 ||
+                targetCol < 0 || targetCol > 7
+            ) {
+                break;
+            }
+
+            const targetPiece = position[targetRow][targetCol];
+
+            // Casa vazia: movimento permitido
+            if (targetPiece === "") {
+                moves.push({ row: targetRow, col: targetCol });
+                continue;
+            }
+
+            // Peça adversária: permite captura
+            if (getPieceColor(targetPiece) !== color) {
+                moves.push({ row: targetRow, col: targetCol });
+            }
+
+            // Não pode atravessar nenhuma peça
+            break;
+        }
+    }
+
+    return moves;
+}
 
 // Retorna os movimentos de acordo com o tipo da peça
 function getValidMoves(row, col) {
@@ -190,9 +244,12 @@ function getValidMoves(row, col) {
         return getRookMoves(row, col);
     }
 
+    if (pieceName === "Bispo") {
+        return getBishopMoves(row, col);
+    }
+
     return [];
 }
-
 // Movimenta uma peça
 function movePiece(fromRow, fromCol, toRow, toCol) {
 
