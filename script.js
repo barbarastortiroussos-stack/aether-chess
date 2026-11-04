@@ -1,4 +1,4 @@
-console.log("AETHER CHESS: NOVO SCRIPT CARREGADO!");
+alert("O SCRIPT ESTÁ FUNCIONANDO!");
 const board = document.getElementById("board");
 const turnDisplay = document.getElementById("turn");
 const restartButton = document.getElementById("restart");
