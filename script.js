@@ -1,4 +1,3 @@
-alert("O SCRIPT ESTÁ FUNCIONANDO!");
 const board = document.getElementById("board");
 const turnDisplay = document.getElementById("turn");
 const restartButton = document.getElementById("restart");
@@ -22,12 +21,20 @@ const pieceNames = {
     "♝": "Bispo", "♛": "Rainha", "♚": "Rei"
 };
 
-const kings = { white: "♔", black: "♚" };
-const queens = { white: "♕", black: "♛" };
+const kings = {
+    white: "♔",
+    black: "♚"
+};
+
+const queens = {
+    white: "♕",
+    black: "♛"
+};
 
 let position = initialPosition.map(row => [...row]);
 let selectedSquare = null;
 let currentTurn = "white";
+let gameOver = false;
 
 // IDENTIFICA A COR DA PEÇA
 function getPieceColor(piece) {
@@ -448,11 +455,49 @@ function getValidMoves(row, col) {
     });
 }
 
-// TEXTO DO TURNO
-function getTurnText() {
-    const turnName = currentTurn === "white" ? "Brancas" : "Pretas";
+// VERIFICA SE O JOGADOR TEM ALGUM MOVIMENTO LEGAL
+function hasAnyLegalMove(color) {
+    for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+            const piece = position[row][col];
 
-    return isKingInCheck(currentTurn)
+            if (
+                piece &&
+                getPieceColor(piece) === color &&
+                getValidMoves(row, col).length > 0
+            ) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+// ATUALIZA O ESTADO DA PARTIDA
+function updateGameStatus() {
+    const turnName = currentTurn === "white" ? "Brancas" : "Pretas";
+    const opponentName = currentTurn === "white" ? "Pretas" : "Brancas";
+
+    const inCheck = isKingInCheck(currentTurn);
+    const hasMoves = hasAnyLegalMove(currentTurn);
+
+    if (!hasMoves && inCheck) {
+        gameOver = true;
+        turnDisplay.textContent =
+            `XEQUE-MATE! ${opponentName} venceram!`;
+        return;
+    }
+
+    if (!hasMoves && !inCheck) {
+        gameOver = true;
+        turnDisplay.textContent = "EMPATE! Afogamento.";
+        return;
+    }
+
+    gameOver = false;
+
+    turnDisplay.textContent = inCheck
         ? `XEQUE! Turno: ${turnName}`
         : `Turno: ${turnName}`;
 }
@@ -472,7 +517,18 @@ function promotePawnIfNeeded(row, col) {
 
 // MOVIMENTA UMA PEÇA
 function movePiece(fromRow, fromCol, toRow, toCol) {
+    if (gameOver) return;
+
     const piece = position[fromRow][fromCol];
+
+    if (!piece || getPieceColor(piece) !== currentTurn) return;
+
+    // Confere novamente se o movimento é legal.
+    const legalMove = getValidMoves(fromRow, fromCol).some(
+        move => move.row === toRow && move.col === toCol
+    );
+
+    if (!legalMove) return;
 
     position[toRow][toCol] = piece;
     position[fromRow][fromCol] = "";
@@ -484,13 +540,14 @@ function movePiece(fromRow, fromCol, toRow, toCol) {
     currentTurn =
         currentTurn === "white" ? "black" : "white";
 
-    turnDisplay.textContent = getTurnText();
-
+    updateGameStatus();
     renderBoard();
 }
 
 // SELECIONA E MOVIMENTA PEÇAS
 function selectSquare(row, col) {
+    if (gameOver) return;
+
     const piece = position[row][col];
 
     if (selectedSquare) {
@@ -526,7 +583,7 @@ function selectSquare(row, col) {
 
     } else {
         selectedSquare = null;
-        turnDisplay.textContent = getTurnText();
+        updateGameStatus();
     }
 
     renderBoard();
@@ -600,15 +657,14 @@ function restartGame() {
 
     selectedSquare = null;
     currentTurn = "white";
+    gameOver = false;
 
-    turnDisplay.textContent = "Turno: Brancas";
-
+    updateGameStatus();
     renderBoard();
 }
 
 // EVENTOS
 restartButton.addEventListener("click", restartGame);
 
-turnDisplay.textContent = getTurnText();
-
+updateGameStatus();
 renderBoard();
