@@ -1,4 +1,3 @@
-
 const board = document.getElementById("board");
 const turnDisplay = document.getElementById("turn");
 const restartButton = document.getElementById("restart");
@@ -16,13 +15,14 @@ const initialPosition = [
 ];
 
 const pieceNames = {
-    "♙": "Peão", "♖": "Torre",
-    "♘": "Cavalo", "♗": "Bispo",
-    "♕": "Rainha", "♔": "Rei",
-    "♟": "Peão", "♜": "Torre",
-    "♞": "Cavalo", "♝": "Bispo",
-    "♛": "Rainha", "♚": "Rei"
+    "♙": "Peão", "♖": "Torre", "♘": "Cavalo",
+    "♗": "Bispo", "♕": "Rainha", "♔": "Rei",
+    "♟": "Peão", "♜": "Torre", "♞": "Cavalo",
+    "♝": "Bispo", "♛": "Rainha", "♚": "Rei"
 };
+
+const kings = { white: "♔", black: "♚" };
+const queens = { white: "♕", black: "♛" };
 
 let position = initialPosition.map(row => [...row]);
 let selectedSquare = null;
@@ -37,7 +37,7 @@ function getPieceColor(piece) {
         : "black";
 }
 
-// RETORNA INFORMAÇÕES DA PEÇA
+// INFORMAÇÕES DA PEÇA
 function getPieceInfo(piece) {
     if (!piece) return null;
 
@@ -45,6 +45,11 @@ function getPieceInfo(piece) {
         name: pieceNames[piece],
         color: getPieceColor(piece)
     };
+}
+
+// VERIFICA OS LIMITES DO TABULEIRO
+function isInsideBoard(row, col) {
+    return row >= 0 && row < 8 && col >= 0 && col < 8;
 }
 
 // VERIFICA SE UMA CASA ESTÁ VAZIA
@@ -56,9 +61,7 @@ function isSquareEmpty(row, col) {
 function getPawnMoves(row, col) {
     const piece = position[row][col];
 
-    if (!piece || pieceNames[piece] !== "Peão") {
-        return [];
-    }
+    if (!piece || pieceNames[piece] !== "Peão") return [];
 
     const color = getPieceColor(piece);
     const direction = color === "white" ? -1 : 1;
@@ -67,21 +70,14 @@ function getPawnMoves(row, col) {
     const nextRow = row + direction;
 
     // Movimento para frente
-    if (
-        nextRow >= 0 &&
-        nextRow <= 7 &&
-        isSquareEmpty(nextRow, col)
-    ) {
+    if (isInsideBoard(nextRow, col) && isSquareEmpty(nextRow, col)) {
         moves.push({ row: nextRow, col });
 
         // Movimento inicial de duas casas
         const initialRow = color === "white" ? 6 : 1;
         const doubleRow = row + direction * 2;
 
-        if (
-            row === initialRow &&
-            isSquareEmpty(doubleRow, col)
-        ) {
+        if (row === initialRow && isSquareEmpty(doubleRow, col)) {
             moves.push({ row: doubleRow, col });
         }
     }
@@ -91,31 +87,23 @@ function getPawnMoves(row, col) {
         const targetRow = row + direction;
         const targetCol = col + offset;
 
-        if (
-            targetRow < 0 || targetRow > 7 ||
-            targetCol < 0 || targetCol > 7
-        ) {
-            continue;
-        }
+        if (!isInsideBoard(targetRow, targetCol)) continue;
 
         const targetPiece = position[targetRow][targetCol];
 
         if (
-            targetPiece !== "" &&
+            targetPiece &&
             getPieceColor(targetPiece) !== color &&
             pieceNames[targetPiece] !== "Rei"
         ) {
-            moves.push({
-                row: targetRow,
-                col: targetCol
-            });
+            moves.push({ row: targetRow, col: targetCol });
         }
     }
 
     return moves;
 }
 
-// MOVIMENTOS EM LINHA RETA OU DIAGONAL
+// TORRE, BISPO E RAINHA
 function getSlidingMoves(row, col, directions) {
     const piece = position[row][col];
 
@@ -129,38 +117,22 @@ function getSlidingMoves(row, col, directions) {
             const targetRow = row + direction.row * distance;
             const targetCol = col + direction.col * distance;
 
-            // Verifica os limites do tabuleiro
-            if (
-                targetRow < 0 || targetRow > 7 ||
-                targetCol < 0 || targetCol > 7
-            ) {
-                break;
-            }
+            if (!isInsideBoard(targetRow, targetCol)) break;
 
             const targetPiece = position[targetRow][targetCol];
 
-            // Casa vazia
-            if (targetPiece === "") {
-                moves.push({
-                    row: targetRow,
-                    col: targetCol
-                });
-
+            if (!targetPiece) {
+                moves.push({ row: targetRow, col: targetCol });
                 continue;
             }
 
-            // Captura uma peça adversária
             if (
                 getPieceColor(targetPiece) !== color &&
                 pieceNames[targetPiece] !== "Rei"
             ) {
-                moves.push({
-                    row: targetRow,
-                    col: targetCol
-                });
+                moves.push({ row: targetRow, col: targetCol });
             }
 
-            // Nenhuma peça pode ser atravessada
             break;
         }
     }
@@ -172,111 +144,81 @@ function getSlidingMoves(row, col, directions) {
 function getRookMoves(row, col) {
     const piece = position[row][col];
 
-    if (!piece || pieceNames[piece] !== "Torre") {
-        return [];
-    }
+    if (!piece || pieceNames[piece] !== "Torre") return [];
 
-    const directions = [
+    return getSlidingMoves(row, col, [
         { row: -1, col: 0 },
         { row: 1, col: 0 },
         { row: 0, col: -1 },
         { row: 0, col: 1 }
-    ];
-
-    return getSlidingMoves(row, col, directions);
+    ]);
 }
 
 // BISPO
 function getBishopMoves(row, col) {
     const piece = position[row][col];
 
-    if (!piece || pieceNames[piece] !== "Bispo") {
-        return [];
-    }
+    if (!piece || pieceNames[piece] !== "Bispo") return [];
 
-    const directions = [
+    return getSlidingMoves(row, col, [
         { row: -1, col: -1 },
         { row: -1, col: 1 },
         { row: 1, col: -1 },
         { row: 1, col: 1 }
-    ];
-
-    return getSlidingMoves(row, col, directions);
+    ]);
 }
 
 // RAINHA
 function getQueenMoves(row, col) {
     const piece = position[row][col];
 
-    if (!piece || pieceNames[piece] !== "Rainha") {
-        return [];
-    }
+    if (!piece || pieceNames[piece] !== "Rainha") return [];
 
-    const directions = [
-        // Retas
+    return getSlidingMoves(row, col, [
         { row: -1, col: 0 },
         { row: 1, col: 0 },
         { row: 0, col: -1 },
         { row: 0, col: 1 },
-
-        // Diagonais
         { row: -1, col: -1 },
         { row: -1, col: 1 },
         { row: 1, col: -1 },
         { row: 1, col: 1 }
-    ];
-
-    return getSlidingMoves(row, col, directions);
+    ]);
 }
 
 // CAVALO
 function getKnightMoves(row, col) {
     const piece = position[row][col];
 
-    if (!piece || pieceNames[piece] !== "Cavalo") {
-        return [];
-    }
+    if (!piece || pieceNames[piece] !== "Cavalo") return [];
 
     const color = getPieceColor(piece);
-    const moves = [];
 
-    const directions = [
-        { row: -2, col: -1 },
-        { row: -2, col: 1 },
-        { row: -1, col: -2 },
-        { row: -1, col: 2 },
-        { row: 1, col: -2 },
-        { row: 1, col: 2 },
-        { row: 2, col: -1 },
-        { row: 2, col: 1 }
+    const offsets = [
+        [-2, -1], [-2, 1],
+        [-1, -2], [-1, 2],
+        [1, -2], [1, 2],
+        [2, -1], [2, 1]
     ];
 
-    for (const direction of directions) {
-        const targetRow = row + direction.row;
-        const targetCol = col + direction.col;
+    const moves = [];
 
-        // Verifica se o destino existe
-        if (
-            targetRow < 0 || targetRow > 7 ||
-            targetCol < 0 || targetCol > 7
-        ) {
-            continue;
-        }
+    for (const [rowOffset, colOffset] of offsets) {
+        const targetRow = row + rowOffset;
+        const targetCol = col + colOffset;
+
+        if (!isInsideBoard(targetRow, targetCol)) continue;
 
         const targetPiece = position[targetRow][targetCol];
 
-        // O cavalo pode saltar sobre outras peças
         if (
-            targetPiece === "" ||
+            !targetPiece ||
             (
                 getPieceColor(targetPiece) !== color &&
                 pieceNames[targetPiece] !== "Rei"
             )
         ) {
-            moves.push({
-                row: targetRow,
-                col: targetCol
-            });
+            moves.push({ row: targetRow, col: targetCol });
         }
     }
 
@@ -287,88 +229,244 @@ function getKnightMoves(row, col) {
 function getKingMoves(row, col) {
     const piece = position[row][col];
 
-    if (!piece || pieceNames[piece] !== "Rei") {
-        return [];
-    }
+    if (!piece || pieceNames[piece] !== "Rei") return [];
 
     const color = getPieceColor(piece);
     const moves = [];
 
-    // O rei pode andar uma casa em qualquer direção
-    const directions = [
-        { row: -1, col: -1 },
-        { row: -1, col: 0 },
-        { row: -1, col: 1 },
-        { row: 0, col: -1 },
-        { row: 0, col: 1 },
-        { row: 1, col: -1 },
-        { row: 1, col: 0 },
-        { row: 1, col: 1 }
-    ];
+    for (let rowOffset = -1; rowOffset <= 1; rowOffset++) {
+        for (let colOffset = -1; colOffset <= 1; colOffset++) {
+            if (rowOffset === 0 && colOffset === 0) continue;
 
-    for (const direction of directions) {
-        const targetRow = row + direction.row;
-        const targetCol = col + direction.col;
+            const targetRow = row + rowOffset;
+            const targetCol = col + colOffset;
 
-        if (
-            targetRow < 0 || targetRow > 7 ||
-            targetCol < 0 || targetCol > 7
-        ) {
-            continue;
-        }
+            if (!isInsideBoard(targetRow, targetCol)) continue;
 
-        const targetPiece = position[targetRow][targetCol];
+            const targetPiece = position[targetRow][targetCol];
 
-        if (
-            targetPiece === "" ||
-            (
-                getPieceColor(targetPiece) !== color &&
-                pieceNames[targetPiece] !== "Rei"
-            )
-        ) {
-            moves.push({
-                row: targetRow,
-                col: targetCol
-            });
+            if (
+                !targetPiece ||
+                (
+                    getPieceColor(targetPiece) !== color &&
+                    pieceNames[targetPiece] !== "Rei"
+                )
+            ) {
+                moves.push({ row: targetRow, col: targetCol });
+            }
         }
     }
 
     return moves;
 }
 
-// RECONHECE OS MOVIMENTOS DE CADA PEÇA
+// MOVIMENTOS BÁSICOS DE CADA PEÇA
+function getPseudoMoves(row, col) {
+    const piece = position[row][col];
+
+    if (!piece) return [];
+
+    switch (pieceNames[piece]) {
+        case "Peão":
+            return getPawnMoves(row, col);
+
+        case "Torre":
+            return getRookMoves(row, col);
+
+        case "Bispo":
+            return getBishopMoves(row, col);
+
+        case "Rainha":
+            return getQueenMoves(row, col);
+
+        case "Cavalo":
+            return getKnightMoves(row, col);
+
+        case "Rei":
+            return getKingMoves(row, col);
+
+        default:
+            return [];
+    }
+}
+
+// ENCONTRA A POSIÇÃO DO REI
+function findKing(color) {
+    const king = kings[color];
+
+    for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+            if (position[row][col] === king) {
+                return { row, col };
+            }
+        }
+    }
+
+    return null;
+}
+
+// VERIFICA SE UMA CASA ESTÁ SENDO ATACADA
+function isSquareAttacked(targetRow, targetCol, attackerColor) {
+
+    // Ataques dos peões
+    const pawn = attackerColor === "white" ? "♙" : "♟";
+
+    const pawnSourceRow =
+        targetRow + (attackerColor === "white" ? 1 : -1);
+
+    for (const colOffset of [-1, 1]) {
+        const pawnSourceCol = targetCol + colOffset;
+
+        if (
+            isInsideBoard(pawnSourceRow, pawnSourceCol) &&
+            position[pawnSourceRow][pawnSourceCol] === pawn
+        ) {
+            return true;
+        }
+    }
+
+    // Ataques dos cavalos
+    const knight = attackerColor === "white" ? "♘" : "♞";
+
+    const knightOffsets = [
+        [-2, -1], [-2, 1],
+        [-1, -2], [-1, 2],
+        [1, -2], [1, 2],
+        [2, -1], [2, 1]
+    ];
+
+    for (const [dr, dc] of knightOffsets) {
+        const row = targetRow + dr;
+        const col = targetCol + dc;
+
+        if (
+            isInsideBoard(row, col) &&
+            position[row][col] === knight
+        ) {
+            return true;
+        }
+    }
+
+    // Ataques do rei
+    const enemyKing = kings[attackerColor];
+
+    for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+            if (dr === 0 && dc === 0) continue;
+
+            const row = targetRow + dr;
+            const col = targetCol + dc;
+
+            if (
+                isInsideBoard(row, col) &&
+                position[row][col] === enemyKing
+            ) {
+                return true;
+            }
+        }
+    }
+
+    // Ataques das torres, bispos e rainhas
+    const directions = [
+        [-1, 0], [1, 0],
+        [0, -1], [0, 1],
+        [-1, -1], [-1, 1],
+        [1, -1], [1, 1]
+    ];
+
+    for (const [dr, dc] of directions) {
+        let row = targetRow + dr;
+        let col = targetCol + dc;
+
+        while (isInsideBoard(row, col)) {
+            const piece = position[row][col];
+
+            if (piece) {
+                if (getPieceColor(piece) === attackerColor) {
+                    const name = pieceNames[piece];
+                    const diagonal = dr !== 0 && dc !== 0;
+
+                    if (
+                        name === "Rainha" ||
+                        (diagonal && name === "Bispo") ||
+                        (!diagonal && name === "Torre")
+                    ) {
+                        return true;
+                    }
+                }
+
+                break;
+            }
+
+            row += dr;
+            col += dc;
+        }
+    }
+
+    return false;
+}
+
+// VERIFICA SE O REI ESTÁ EM XEQUE
+function isKingInCheck(color) {
+    const kingPosition = findKing(color);
+
+    if (!kingPosition) return false;
+
+    const opponent = color === "white" ? "black" : "white";
+
+    return isSquareAttacked(
+        kingPosition.row,
+        kingPosition.col,
+        opponent
+    );
+}
+
+// FILTRA MOVIMENTOS QUE DEIXARIAM O PRÓPRIO REI EM XEQUE
 function getValidMoves(row, col) {
     const piece = position[row][col];
 
     if (!piece) return [];
 
-    const pieceName = pieceNames[piece];
+    const color = getPieceColor(piece);
+    const pseudoMoves = getPseudoMoves(row, col);
 
-    if (pieceName === "Peão") {
-        return getPawnMoves(row, col);
+    return pseudoMoves.filter(move => {
+        const originalPiece = position[move.row][move.col];
+
+        // Simula o movimento
+        position[move.row][move.col] = piece;
+        position[row][col] = "";
+
+        const kingIsSafe = !isKingInCheck(color);
+
+        // Restaura o tabuleiro
+        position[row][col] = piece;
+        position[move.row][move.col] = originalPiece;
+
+        return kingIsSafe;
+    });
+}
+
+// TEXTO DO TURNO
+function getTurnText() {
+    const turnName = currentTurn === "white" ? "Brancas" : "Pretas";
+
+    return isKingInCheck(currentTurn)
+        ? `XEQUE! Turno: ${turnName}`
+        : `Turno: ${turnName}`;
+}
+
+// PROMOÇÃO DO PEÃO
+function promotePawnIfNeeded(row, col) {
+    const piece = position[row][col];
+
+    if (piece === "♙" && row === 0) {
+        position[row][col] = queens.white;
     }
 
-    if (pieceName === "Torre") {
-        return getRookMoves(row, col);
+    if (piece === "♟" && row === 7) {
+        position[row][col] = queens.black;
     }
-
-    if (pieceName === "Bispo") {
-        return getBishopMoves(row, col);
-    }
-
-    if (pieceName === "Rainha") {
-        return getQueenMoves(row, col);
-    }
-
-    if (pieceName === "Cavalo") {
-        return getKnightMoves(row, col);
-    }
-
-    if (pieceName === "Rei") {
-        return getKingMoves(row, col);
-    }
-
-    return [];
 }
 
 // MOVIMENTA UMA PEÇA
@@ -378,15 +476,14 @@ function movePiece(fromRow, fromCol, toRow, toCol) {
     position[toRow][toCol] = piece;
     position[fromRow][fromCol] = "";
 
+    promotePawnIfNeeded(toRow, toCol);
+
     selectedSquare = null;
 
     currentTurn =
         currentTurn === "white" ? "black" : "white";
 
-    turnDisplay.textContent =
-        currentTurn === "white"
-            ? "Turno: Brancas"
-            : "Turno: Pretas";
+    turnDisplay.textContent = getTurnText();
 
     renderBoard();
 }
@@ -428,17 +525,13 @@ function selectSquare(row, col) {
 
     } else {
         selectedSquare = null;
-
-        turnDisplay.textContent =
-            currentTurn === "white"
-                ? "Turno: Brancas"
-                : "Turno: Pretas";
+        turnDisplay.textContent = getTurnText();
     }
 
     renderBoard();
 }
 
-// RENDERIZA O TABULEIRO
+// DESENHA O TABULEIRO
 function renderBoard() {
     board.innerHTML = "";
 
@@ -512,8 +605,9 @@ function restartGame() {
     renderBoard();
 }
 
+// EVENTOS
 restartButton.addEventListener("click", restartGame);
 
+turnDisplay.textContent = getTurnText();
+
 renderBoard();
-
-
